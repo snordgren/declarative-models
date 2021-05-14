@@ -16,6 +16,7 @@ pub struct Gltf {
   #[serde(rename="bufferViews")]
   pub buffer_views: Vec<BufferView>,
   pub accessors: Vec<Accessor>,
+  pub materials: Vec<Material>,
   pub asset: Asset,
 }
 
@@ -37,6 +38,8 @@ pub struct Mesh {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Primitive {
   pub attributes: Attributes,
+  #[serde(default)]
+  pub material: Option<u32>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -75,4 +78,21 @@ pub struct Accessor {
   pub accessor_type: String,
   pub max: Vec<f32>,
   pub min: Vec<f32>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Material {
+  pub name: String,
+  #[serde(rename="pbrMetallicRoughness")]
+  pub pbr_metallic_roughness: PBRMetallicRoughness,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PBRMetallicRoughness {
+  #[serde(rename="baseColorFactor")]
+  pub base_color_factor: [f32; 4],
+  #[serde(rename="metallicFactor")]
+  pub metallic_factor: f32,
+  #[serde(rename="roughnessFactor")]
+  pub roughness_factor: f32,
 }

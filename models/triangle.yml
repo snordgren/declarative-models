@@ -1,0 +1,17 @@
+meshes:
+  - name: triangle
+    material:
+    primitives:
+      - material: red
+        geometry:
+          - Triangle: { points: [{}, {x: 1}, {x: 0.5, y: 1}] }
+
+nodes:
+  - name: triangle
+    mesh: triangle
+
+materials:
+  - name: red
+    baseColor: [255, 0, 0, 255]
+    metallic: 0
+    roughness: 1
