@@ -1,0 +1,25 @@
+meshes:
+  - name: "chest"
+    geometry:
+      - Box: { size: { 16, 4, 6 } }
+      - Box: { position: { y: 4 }, size: { 14, 12, 4 } }
+  - name: "foot"
+    geometry:
+      - Box: { size: { x: 1, y: 1, z: 2 } }
+
+nodes:
+  - name: "chest"
+    mesh: "chest"
+  - name: "legs"
+    offset: { x: 8 }
+    children:
+      - name: "leftLeg"
+        offset: { x: -2 }
+        children:
+          - name: "leftFoot"
+            mesh: "foot"
+      - name: "rightLeg"
+        offset: { x: -2 }
+        children:
+          - name: "rightFoot"
+            mesh: "foot"
