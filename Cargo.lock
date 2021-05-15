@@ -11,6 +11,7 @@ name = "declarative-models"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "glam",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -21,6 +22,12 @@ name = "dtoa"
 version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "56899898ce76aaf4a0f24d914c97ea6ed976d42fec6ad33fcbb0a1103e07b2b0"
+
+[[package]]
+name = "glam"
+version = "0.15.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "411e0584defa447c328f25c756ba3d0685727ecc126b46c3c1176001141cd4b6"
 
 [[package]]
 name = "itoa"

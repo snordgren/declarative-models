@@ -4,7 +4,7 @@ meshes:
     primitives:
       - material: red
         geometry:
-          - Triangle: { points: [{}, {x: 1}, {x: 0.5, y: 1}] }
+          - Triangle: { points: [{x: -1}, {x: 1}, {y: 2}] }
 
 nodes:
   - name: triangle
@@ -14,4 +14,27 @@ materials:
   - name: red
     baseColor: [255, 0, 0, 255]
     metallic: 0
-    roughness: 1
+    roughness: 0
+
+animations:
+  - name: translate
+    node: triangle
+    target: Translation
+    keyframes:
+      - [0, { x: 0 }]
+      - [1, { x: 1 }]
+      - [2, { x: 0 }]
+  - name: rotate
+    node: triangle
+    target: Rotation
+    keyframes:
+      - [0, { y: 0 }]
+      - [1, { y: 180 }]
+      - [2, { y: 360 }]
+  - name: scale
+    node: triangle
+    target: Scale
+    keyframes:
+      - [0, { x: 1, y: 1, z: 1 }]
+      - [1, { x: 0.5, y: 0.5, z: 0.5 }]
+      - [2, { x: 1, y: 1, z: 1 }]

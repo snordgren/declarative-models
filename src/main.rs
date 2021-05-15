@@ -1,93 +1,9 @@
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
+pub use model::*;
 
 pub mod gltf;
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Model {
-  pub meshes: Vec<Mesh>,
-  pub nodes: Vec<Node>,
-  #[serde(default)]
-  pub animations: Vec<Animation>,
-  #[serde(default)]
-  pub materials: Vec<Material>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Mesh {
-  pub name: String,
-  pub primitives: Vec<Primitive>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Primitive {
-  #[serde(default)]
-  pub material: Option<String>,
-  pub geometry: Vec<Geometry>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum Geometry {
-  Box(Box),
-  Triangle(Triangle),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Box {
-  #[serde(default)]
-  pub position: Vector3,
-  #[serde(default)]
-  pub size: Vector3,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Triangle {
-  pub points: [Vector3; 3],
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Node {
-  pub name: String,
-  #[serde(default)]
-  pub mesh: Option<String>,
-  #[serde(default)]
-  pub offset: Vector3,
-  #[serde(default)]
-  pub rotation: Vector3,
-  #[serde(default)]
-  pub children: Vec<Node>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Animation {
-  pub name: String,
-  pub node: String,
-}
-
-#[derive(Copy, Clone, Debug, Default, Deserialize, Serialize)]
-#[repr(C)]
-pub struct Vector3 {
-  #[serde(default)]
-  pub x: f32,
-  #[serde(default)]
-  pub y: f32,
-  #[serde(default)]
-  pub z: f32,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Material {
-  pub name: String,
-  #[serde(rename = "baseColor")]
-  pub base_color: [f32; 4],
-  pub metallic: f32,
-  pub roughness: f32,
-}
-
-unsafe impl bytemuck::Zeroable for Vector3 {}
-
-unsafe impl bytemuck::Pod for Vector3 {}
+mod model;
 
 fn main() {
   for file in std::fs::read_dir("models").unwrap()
@@ -110,15 +26,19 @@ fn main() {
 
     let mut vertices = Vec::new();
 
+    let mut accessors = Vec::new();
+    let mut animations = Vec::new();
+    let mut buffer_views = Vec::new();
     let mut materials = Vec::new();
     let mut meshes = Vec::new();
-    let mut buffer_views = Vec::new();
-    let mut accessors = Vec::new();
+    let mut nodes = Vec::new();
 
     let mut material_indices = HashMap::new();
-    let mut material_index_counter = 0u32;
+    let mut material_index_counter: u32 = 0;
     let mut mesh_indices = HashMap::new();
-    let mut mesh_index_counter = 0;
+    let mut mesh_index_counter: u32 = 0;
+    let mut node_ids = HashMap::new();
+    let mut node_id_counter: u32 = 0;
 
     for material in &model.materials {
       let mut base_color = material.base_color.clone();
@@ -136,7 +56,8 @@ fn main() {
           base_color_factor: base_color,
           metallic_factor: material.metallic,
           roughness_factor: material.roughness,
-        }
+        },
+        double_sided: true,
       });
 
       material_indices.insert(material.name.clone(), material_index_counter);
@@ -188,7 +109,7 @@ fn main() {
           buffer: 0,
           byte_offset: start_vertices_len as u32 * 12,
           byte_length: vertices.len() as u32 * 12,
-          target: 34962, // vertices
+          target: Some(34962), // vertices
         });
 
         accessors.push(gltf::Accessor {
@@ -233,16 +154,136 @@ fn main() {
       }
     }
 
-    let mut nodes = Vec::new();
+    let mut node_stack = Vec::new();
     for node in &model.nodes {
-      let mesh = node.mesh.as_ref().map(|it| *mesh_indices.get(it).unwrap());
+      node_stack.push(node);
+    }
+    while !node_stack.is_empty() {
+      let last = node_stack.remove(node_stack.len() - 1);
+      for child in &last.children {
+        node_stack.push(child);
+      }
+      node_ids.insert(last.name.clone(), node_id_counter);
+
+      let mesh = last.mesh.as_ref().map(|it| *mesh_indices.get(it).unwrap());
 
       nodes.push(gltf::Node {
         mesh,
       });
+
+      node_id_counter += 1;
     }
 
-    let output = gltf::Gltf {
+    let mut animation_data = Vec::new();
+    for animation in &model.animations {
+      let node = *node_ids.get(&animation.node).unwrap();
+      let mut gltf_animation = gltf::Animation::default();
+      gltf_animation.name = animation.name.clone();
+
+      let mut max_time = 0f32;
+
+      let byte_offset = animation_data.len() as u32 * 4;
+      for keyframe in &animation.keyframes {
+        animation_data.push(keyframe.0);
+        max_time = max_time.max(keyframe.0);
+      }
+      let output_byte_offset = animation_data.len() as u32 * 4 - byte_offset;
+
+      let mut max_value = animation.keyframes[0].1;
+      let mut min_value = animation.keyframes[0].1;
+
+      let mut min_quat = glam::Vec4::new(1.0, 1.0, 1.0, 1.0);
+      let mut max_quat = glam::Vec4::new(-1.0, -1.0, -1.0, -1.0);
+
+      for keyframe in &animation.keyframes {
+        if animation.target == Target::Rotation {
+          let quat = glam::Quat::from_euler(
+            glam::EulerRot::ZYX,
+            keyframe.1.x.to_radians(),
+            keyframe.1.y.to_radians(),
+            keyframe.1.z.to_radians(),
+          );
+          quat.normalize();
+
+          animation_data.push(quat.x);
+          animation_data.push(quat.y);
+          animation_data.push(quat.z);
+          animation_data.push(quat.w);
+
+          min_quat.x = min_quat.x.min(quat.x);
+          min_quat.y = min_quat.y.min(quat.y);
+          min_quat.z = min_quat.z.min(quat.z);
+          min_quat.w = min_quat.w.min(quat.w);
+
+          max_quat.x = max_quat.x.max(quat.x);
+          max_quat.y = max_quat.y.max(quat.y);
+          max_quat.z = max_quat.z.max(quat.z);
+          max_quat.w = max_quat.w.max(quat.w);
+        } else {
+          animation_data.push(keyframe.1.x);
+          animation_data.push(keyframe.1.y);
+          animation_data.push(keyframe.1.z);
+
+          min_value = min_value.min(keyframe.1);
+          max_value = max_value.max(keyframe.1);
+        }
+      }
+
+      let buffer_view = buffer_views.len() as u32;
+      buffer_views.push(gltf::BufferView {
+        buffer: 1,
+        byte_offset,
+        byte_length: animation_data.len() as u32 * 4 - byte_offset,
+        target: None,
+      });
+
+      let input_sampler = gltf::Accessor {
+        buffer_view,
+        byte_offset: 0,
+        component_type: 5126,
+        count: animation.keyframes.len() as u32,
+        accessor_type: "SCALAR".to_string(),
+        max: vec![max_time],
+        min: vec![0.0],
+      };
+
+      let is_quat = animation.target == Target::Rotation;
+
+      let output_sampler = gltf::Accessor {
+        buffer_view,
+        byte_offset: output_byte_offset,
+        component_type: 5126,
+        count: animation.keyframes.len() as u32,
+        accessor_type: if is_quat { "VEC4".to_string() } else { "VEC3".to_string() },
+        max: if is_quat { max_quat.to_array().into() } else { max_value.into() },
+        min: if is_quat { min_quat.to_array().into() } else { min_value.into() },
+      };
+
+      let input_sampler_id = accessors.len() as u32;
+      accessors.push(input_sampler);
+
+      let output_sampler_id = accessors.len() as u32;
+      accessors.push(output_sampler);
+
+      let path = match animation.target {
+        Target::Translation => gltf::Path::Translation,
+        Target::Rotation => gltf::Path::Rotation,
+        Target::Scale => gltf::Path::Scale,
+      };
+
+      gltf_animation.channels.push(gltf::Channel {
+        sampler: gltf_animation.samplers.len() as u32,
+        target: gltf::Target { node, path },
+      });
+      gltf_animation.samplers.push(gltf::Sampler {
+        input: input_sampler_id,
+        output: output_sampler_id,
+        interpolation: gltf::Interpolation::Linear,
+      });
+      animations.push(gltf_animation);
+    }
+
+    let mut output = gltf::Gltf {
       scene: 0,
       scenes: vec![gltf::Scene {
         nodes: vec![0]
@@ -256,11 +297,25 @@ fn main() {
       buffer_views,
       accessors,
       materials,
+      animations,
       asset: gltf::Asset { version: "2.0".to_string() },
     };
 
+    let animation_data_file = format!("{}.animations.bin", file_name);
+    if animation_data.len() > 0 {
+      output.buffers.push(gltf::Buffer {
+        uri: animation_data_file.clone(),
+        byte_length: animation_data.len() as u32 * 4,
+      })
+    }
+
     std::fs::write(&format!("{}/{}.gltf", output_path, file_name),
       serde_json::to_string_pretty(&output).unwrap()).unwrap();
+
+    if animation_data.len() > 0 {
+      std::fs::write(&format!("{}/{}", output_path, animation_data_file),
+        bytemuck::cast_slice(&animation_data)).unwrap();
+    }
 
     std::fs::write(format!("{}/{}.bin", output_path, file_name),
       bytemuck::cast_slice(&vertices)).unwrap();
