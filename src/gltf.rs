@@ -33,9 +33,16 @@ pub struct Scene {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Node {
-  #[serde(default)]
-  #[serde(skip_serializing_if = "Option::is_none")]
+  #[serde(default, skip_serializing_if = "Option::is_none")]
   pub mesh: Option<u32>,
+  #[serde(default, skip_serializing_if = "Vec::is_empty")]
+  pub children: Vec<u32>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub translation: Option<[f32; 3]>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub rotation: Option<[f32; 4]>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub scale: Option<[f32; 3]>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

@@ -11,6 +11,8 @@ fn main() {
     let file_path_path = file.path();
     let file_path = file_path_path.to_str().unwrap();
 
+    println!("Processing {}...", file_path);
+
     let file_name_os_str = file.file_name();
     let file_name = file_name_os_str.to_str().unwrap().split(".").nth(0).unwrap();
     let output_path = format!("output/{}", file_name);
@@ -75,7 +77,7 @@ fn main() {
         for geometry in &primitive.geometry {
           match geometry {
             Geometry::Box(b) => {
-              let min = b.position - (b.size / Vector3::new(2.0, 2.0, 2.0));
+              let min = b.position - b.size / Vector3::new(2.0, 2.0, 2.0);
               let max = min + b.size;
 
               vertices.push(min);
@@ -150,10 +152,11 @@ fn main() {
           }
         }
 
+        let byte_offset = start_vertices_len as u32 * 12;
         buffer_views.push(gltf::BufferView {
           buffer: 0,
-          byte_offset: start_vertices_len as u32 * 12,
-          byte_length: vertices.len() as u32 * 12,
+          byte_offset,
+          byte_length: (vertices.len() as u32 * 12) - byte_offset,
           target: Some(34962), // vertices
         });
 
@@ -161,14 +164,14 @@ fn main() {
           buffer_view: buffer_views.len() as u32 - 1,
           byte_offset: 0,
           component_type: 5126,
-          count: vertices.len() as u32,
+          count: (vertices.len() - start_vertices_len) as u32,
           accessor_type: "VEC3".to_string(),
           max: vec![max.x, max.y, max.z],
           min: vec![min.x, min.y, min.z],
         });
 
         let material = primitive.material.as_ref()
-          .map(|it| *material_indices.get(it).unwrap());
+          .map(|it| *material_indices.get(it).expect(&format!("Cannot find material '{}'", it)));
 
         primitives.push(gltf::Primitive {
           attributes: gltf::Attributes {
@@ -200,20 +203,42 @@ fn main() {
     }
 
     let mut node_stack = Vec::new();
+    let mut node_children = Vec::new();
+
     for node in &model.nodes {
-      node_stack.push(node);
+      node_children.push(node);
     }
+
+    while !node_children.is_empty() {
+      let last = node_children.remove(node_children.len() - 1);
+      for child in &last.children {
+        node_children.push(child);
+      }
+      node_stack.push(last);
+    }
+
     while !node_stack.is_empty() {
       let last = node_stack.remove(node_stack.len() - 1);
-      for child in &last.children {
-        node_stack.push(child);
-      }
       node_ids.insert(last.name.clone(), node_id_counter);
 
       let mesh = last.mesh.as_ref().map(|it| *mesh_indices.get(it).unwrap());
+      let children: Vec<u32> = last.children.iter()
+        .map(|it| *node_ids.get(&it.name).unwrap())
+        .collect();
+
+      let rotation = last.rotation.map(|it| {
+        let quat = glam::Quat::from_euler(glam::EulerRot::ZYX, it.x.to_radians(),
+          it.y.to_radians(), it.z.to_radians())
+          .normalize();
+        [quat.x, quat.y, quat.z, quat.w]
+      });
 
       nodes.push(gltf::Node {
         mesh,
+        children,
+        translation: last.offset.map(|it| [it.x, it.y, it.z]),
+        rotation,
+        scale: last.scale.map(|it| [it.x, it.y, it.z]),
       });
 
       node_id_counter += 1;
@@ -221,34 +246,34 @@ fn main() {
 
     let mut animation_data = Vec::new();
     for animation in &model.animations {
-      let node = *node_ids.get(&animation.node).unwrap();
       let mut gltf_animation = gltf::Animation::default();
       gltf_animation.name = animation.name.clone();
 
-      let mut max_time = 0f32;
+      for channel in &animation.channels {
+        let node = *node_ids.get(&channel.node).unwrap();
+        let mut max_time = 0f32;
 
-      let byte_offset = animation_data.len() as u32 * 4;
-      for keyframe in &animation.keyframes {
-        animation_data.push(keyframe.0);
-        max_time = max_time.max(keyframe.0);
-      }
-      let output_byte_offset = animation_data.len() as u32 * 4 - byte_offset;
+        let byte_offset = animation_data.len() as u32 * 4;
+        for keyframe in &channel.keyframes {
+          animation_data.push(keyframe.0);
+          max_time = max_time.max(keyframe.0);
+        }
+        let output_byte_offset = animation_data.len() as u32 * 4 - byte_offset;
 
-      let mut max_value = animation.keyframes[0].1;
-      let mut min_value = animation.keyframes[0].1;
+        let mut max_value = channel.keyframes[0].1;
+        let mut min_value = channel.keyframes[0].1;
 
-      let mut min_quat = glam::Vec4::new(1.0, 1.0, 1.0, 1.0);
-      let mut max_quat = glam::Vec4::new(-1.0, -1.0, -1.0, -1.0);
+        let mut min_quat = glam::Vec4::new(1.0, 1.0, 1.0, 1.0);
+        let mut max_quat = glam::Vec4::new(-1.0, -1.0, -1.0, -1.0);
 
-      for keyframe in &animation.keyframes {
-        if animation.target == Target::Rotation {
-          let quat = glam::Quat::from_euler(
-            glam::EulerRot::ZYX,
-            keyframe.1.x.to_radians(),
-            keyframe.1.y.to_radians(),
-            keyframe.1.z.to_radians(),
-          );
-          quat.normalize();
+        for keyframe in &channel.keyframes {
+          if channel.target == Target::Rotation {
+            let quat = glam::Quat::from_euler(
+              glam::EulerRot::ZYX,
+              keyframe.1.x.to_radians(),
+              keyframe.1.y.to_radians(),
+              keyframe.1.z.to_radians(),
+            ).normalize();
 
           animation_data.push(quat.x);
           animation_data.push(quat.y);
@@ -286,19 +311,19 @@ fn main() {
         buffer_view,
         byte_offset: 0,
         component_type: 5126,
-        count: animation.keyframes.len() as u32,
+        count: channel.keyframes.len() as u32,
         accessor_type: "SCALAR".to_string(),
         max: vec![max_time],
         min: vec![0.0],
       };
 
-      let is_quat = animation.target == Target::Rotation;
+      let is_quat = channel.target == Target::Rotation;
 
       let output_sampler = gltf::Accessor {
         buffer_view,
         byte_offset: output_byte_offset,
         component_type: 5126,
-        count: animation.keyframes.len() as u32,
+        count: channel.keyframes.len() as u32,
         accessor_type: if is_quat { "VEC4".to_string() } else { "VEC3".to_string() },
         max: if is_quat { max_quat.to_array().into() } else { max_value.into() },
         min: if is_quat { min_quat.to_array().into() } else { min_value.into() },
@@ -307,31 +332,33 @@ fn main() {
       let input_sampler_id = accessors.len() as u32;
       accessors.push(input_sampler);
 
-      let output_sampler_id = accessors.len() as u32;
-      accessors.push(output_sampler);
+        let output_sampler_id = accessors.len() as u32;
+        accessors.push(output_sampler);
 
-      let path = match animation.target {
-        Target::Translation => gltf::Path::Translation,
-        Target::Rotation => gltf::Path::Rotation,
-        Target::Scale => gltf::Path::Scale,
-      };
+        let path = match channel.target {
+          Target::Translation => gltf::Path::Translation,
+          Target::Rotation => gltf::Path::Rotation,
+          Target::Scale => gltf::Path::Scale,
+        };
 
-      gltf_animation.channels.push(gltf::Channel {
-        sampler: gltf_animation.samplers.len() as u32,
-        target: gltf::Target { node, path },
-      });
-      gltf_animation.samplers.push(gltf::Sampler {
-        input: input_sampler_id,
-        output: output_sampler_id,
-        interpolation: gltf::Interpolation::Linear,
-      });
+        gltf_animation.channels.push(gltf::Channel {
+          sampler: gltf_animation.samplers.len() as u32,
+          target: gltf::Target { node, path },
+        });
+        gltf_animation.samplers.push(gltf::Sampler {
+          input: input_sampler_id,
+          output: output_sampler_id,
+          interpolation: gltf::Interpolation::Linear,
+        });
+      }
+
       animations.push(gltf_animation);
     }
 
     let mut output = gltf::Gltf {
       scene: 0,
       scenes: vec![gltf::Scene {
-        nodes: vec![0]
+        nodes: model.nodes.iter().map(|it| *node_ids.get(&it.name).unwrap()).collect(),
       }],
       nodes,
       meshes,

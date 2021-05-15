@@ -49,16 +49,23 @@ pub struct Node {
   #[serde(default)]
   pub mesh: Option<String>,
   #[serde(default)]
-  pub offset: Vector3,
+  pub offset: Option<Vector3>,
   #[serde(default)]
-  pub rotation: Vector3,
+  pub rotation: Option<Vector3>,
+  #[serde(default)]
+  pub scale: Option<Vector3>,
   #[serde(default)]
   pub children: Vec<Node>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Animation {
   pub name: String,
+  pub channels: Vec<Channel>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Channel {
   pub node: String,
   pub target: Target,
   pub keyframes: Vec<(f32, Vector3)>,

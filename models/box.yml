@@ -18,9 +18,10 @@ materials:
 
 animations:
   - name: rotate
-    node: head
-    target: Rotation
-    keyframes:
-      - [0, { y: 0 }]
-      - [1, { y: 180 }]
-      - [2, { y: 360 }]
+    channels:
+      - node: head
+        target: Rotation
+        keyframes:
+          - [0, { y: 0 }]
+          - [1, { y: 180 }]
+          - [2, { y: 360 }]

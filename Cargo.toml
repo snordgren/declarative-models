@@ -9,6 +9,7 @@ incremental = true
 opt-level = 2
 
 [dependencies]
+base64 = "0.13.0"
 bytemuck = "1.5.1"
 glam = "0.15.1"
 serde = { version = "1.0.126", features = ["derive"] }
