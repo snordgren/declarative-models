@@ -1,6 +1,5 @@
 meshes:
   - name: triangle
-    material:
     primitives:
       - material: red
         geometry:

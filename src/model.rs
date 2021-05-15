@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::ops::{Add, Sub, Mul, Div};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Model {
@@ -62,15 +63,6 @@ pub struct Animation {
   pub target: Target,
   pub keyframes: Vec<(f32, Vector3)>,
 }
-/*
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Keyframe {
-  pub time: f32,
-  #[serde(default)]
-  pub rotation: Option<Vector3>,
-  #[serde(default)]
-  pub translation: Option<Vector3>,
-}*/
 
 #[derive(Copy, Clone, Debug, Default, Deserialize, Serialize)]
 #[repr(C)]
@@ -88,19 +80,71 @@ unsafe impl bytemuck::Zeroable for Vector3 {}
 unsafe impl bytemuck::Pod for Vector3 {}
 
 impl Vector3 {
-  pub fn max(&self, other: Vector3) -> Vector3 {
-    Vector3 {
+  pub fn max(&self, other: Vector3) -> Self {
+    Self {
       x: self.x.max(other.x),
       y: self.y.max(other.y),
       z: self.z.max(other.z),
     }
   }
 
-  pub fn min(&self, other: Vector3) -> Vector3 {
-    Vector3 {
+  pub fn min(&self, other: Vector3) -> Self {
+    Self {
       x: self.x.min(other.x),
       y: self.y.min(other.y),
       z: self.z.min(other.z),
+    }
+  }
+
+  pub fn new(x: f32, y: f32, z: f32) -> Self {
+    Self { x, y, z }
+  }
+}
+
+impl Add for Vector3 {
+  type Output = Self;
+
+  fn add(self, rhs: Self) -> Self::Output {
+    Self {
+      x: self.x + rhs.x,
+      y: self.y + rhs.y,
+      z: self.z + rhs.z,
+    }
+  }
+}
+
+impl Div for Vector3 {
+  type Output = Self;
+
+  fn div(self, rhs: Self) -> Self::Output {
+    Self {
+      x: self.x / rhs.x,
+      y: self.y / rhs.y,
+      z: self.z / rhs.z,
+    }
+  }
+}
+
+impl Mul for Vector3 {
+  type Output = Self;
+
+  fn mul(self, rhs: Self) -> Self::Output {
+    Self {
+      x: self.x * rhs.x,
+      y: self.y * rhs.y,
+      z: self.z * rhs.z,
+    }
+  }
+}
+
+impl Sub for Vector3 {
+  type Output = Self;
+
+  fn sub(self, rhs: Self) -> Self::Output {
+    Self {
+      x: self.x - rhs.x,
+      y: self.y - rhs.y,
+      z: self.z - rhs.z,
     }
   }
 }
