@@ -355,6 +355,8 @@ fn main() {
       animations.push(gltf_animation);
     }
 
+    let base64_config = base64::Config::new(base64::CharacterSet::Standard, false);
+
     let mut output = gltf::Gltf {
       scene: 0,
       scenes: vec![gltf::Scene {
@@ -363,7 +365,8 @@ fn main() {
       nodes,
       meshes,
       buffers: vec![gltf::Buffer {
-        uri: format!("{}.bin", file_name),
+        uri: format!("data:application/octet-stream;base64,{}",
+          base64::encode_config(bytemuck::cast_slice(&vertices), base64_config)),
         byte_length: vertices.len() as u32 * 12,
       }],
       buffer_views,
@@ -373,23 +376,15 @@ fn main() {
       asset: gltf::Asset { version: "2.0".to_string() },
     };
 
-    let animation_data_file = format!("{}.animations.bin", file_name);
     if animation_data.len() > 0 {
       output.buffers.push(gltf::Buffer {
-        uri: animation_data_file.clone(),
+        uri: format!("data:application/octet-stream;base64,{}",
+          base64::encode_config(bytemuck::cast_slice(&animation_data), base64_config)),
         byte_length: animation_data.len() as u32 * 4,
       })
     }
 
-    std::fs::write(&format!("{}/{}.gltf", output_path, file_name),
+    std::fs::write(&format!("{}.gltf", output_path),
       serde_json::to_string_pretty(&output).unwrap()).unwrap();
-
-    if animation_data.len() > 0 {
-      std::fs::write(&format!("{}/{}", output_path, animation_data_file),
-        bytemuck::cast_slice(&animation_data)).unwrap();
-    }
-
-    std::fs::write(format!("{}/{}.bin", output_path, file_name),
-      bytemuck::cast_slice(&vertices)).unwrap();
   }
 }
