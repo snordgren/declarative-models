@@ -1,0 +1,82 @@
+meshes:
+  - name: spoke
+    primitives:
+      - material: default
+        geometry:
+          - Box: { size: { x: 0.25, y: 8, z: 4 } }
+  - name: board
+    primitives:
+      - material: brown
+        geometry:
+          - Box: { size: { x: 0.25, y: 2, z: 3.5 } }
+  - name: shaft
+    primitives:
+      - material: brown
+        geometry:
+          - Box: { size: { x: 0.25, y: 0.25, z: 5 } }
+
+nodes:
+  - name: rootJoint
+    mesh: shaft
+    children:
+      - name: verticalSpoke
+        mesh: spoke
+      - name: horizontalSpoke
+        rotation: { x: 90 }
+        mesh: spoke
+      - name: diagonalSpoke0
+        rotation: { x: 45 }
+        mesh: spoke
+      - name: diagonalSpoke1
+        rotation: { x: -45 }
+        mesh: spoke
+      - name: board0
+        offset: { x: -2.5 }
+        mesh: board
+      - name: board1
+        offset: { y: 2.5 }
+        rotation: { x: 90 }
+        mesh: board
+      - name: board2
+        offset: { x: 2.5 }
+        mesh: board
+      - name: board3
+        offset: { y: -2.5 }
+        rotation: { x: 90 }
+        mesh: board
+      - name: sideBoard0
+        offset: { x: -1.75, y: 1.75 }
+        rotation: { x: -45 }
+        mesh: board
+      - name: sideBoard1
+        offset: { x: 1.75, y: 1.75 }
+        rotation: { x: 45 }
+        mesh: board
+      - name: sideBoard2
+        offset: { x: 1.75, y: -1.75 }
+        rotation: { x: -45 }
+        mesh: board
+      - name: sideBoard3
+        offset: { x: -1.75, y: -1.75 }
+        rotation: { x: 45 }
+        mesh: board
+
+materials:
+  - name: default
+    baseColor: [ 114, 83, 46, 255 ]
+    metallic: 0
+    roughness: 1
+  - name: brown
+    baseColor: [ 90, 63, 36, 255 ]
+    metallic: 0
+    roughness: 1
+
+animations:
+  - name: spin
+    channels:
+      - nodes: [ rootJoint ]
+        target: Rotation
+        keyframes:
+          - [ 0, { x: 0 } ]
+          - [ 2, { x: 180 } ]
+          - [ 4, { x: 360 } ]
