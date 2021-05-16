@@ -1,0 +1,192 @@
+meshes:
+  - name: head
+    primitives:
+      - material: brown
+        geometry:
+          - Box: { position: { z: -0.5 }, size: { x: 2, y: 1.5, z: 1 } }
+          - Box: { position: { z: 0.5, y: -0.25 }, size: { x: 1.5, y: 1, z: 1 } }
+      - material: tan
+        geometry:
+          - Box: { position: { z: 1.125, y: -0.25 }, size: { x: 0.5, y: 0.5, z: 0.25 } }
+  - name: ear
+    primitives:
+      - material: tan
+        geometry:
+          - Box: { size: { x: 0.50, y: 0.50, z: 0.25 } }
+  - name: neck
+    primitives:
+      - material: tan
+        geometry:
+          - Box: { size: { x: 1.5, y: 0.75, z: 1.5 } }
+  - name: chest
+    primitives:
+      - material: darkBrown
+        geometry:
+          - Box: { position: { z: -0.75 }, size: { x: 3.5, y: 2.5, z: 2 } }
+          - Box: { position: { z: 1 }, size: { x: 3.25, y: 2.25, z: 1.5 } }
+  - name: leg
+    primitives:
+      - material: brown
+        geometry:
+          - Box: { position: { y: 0.5 }, size: { x: 1, y: 1, z: 1 } }
+          - Box: { position: { y: -0.5 }, size: { x: 0.75, y: 1, z: 0.75 } }
+      - material: tan
+        geometry:
+          - Box: { position: { y: -0.875, z: 0.5 }, size: { x: 0.75, y: 0.25, z: 0.25 } }
+          - Box: { position: { y: 1.125 }, size: { x: 0.75, y: 0.25, z: 0.75 } }
+  - name: eye
+    primitives:
+      - material: black
+        geometry:
+          - Box: { size: { x: 0.25, y: 0.25, z: 0.125 } }
+
+nodes:
+  - name: chestJoint
+    children:
+      - name: chest
+        mesh: chest
+      - name: neckJoint
+        offset: { z: 2.5 }
+        children:
+          - name: neck
+            mesh: neck
+            children:
+              - name: headJoint
+                rotation: { z: 11.25 }
+                children:
+                  - name: head
+                    mesh: head
+                    offset: { z: 1 }
+                    children:
+                      - name: eyesJoint
+                        offset: { y: 0.5 }
+                        children:
+                          - name: leftEye
+                            offset: { x: 0.375 }
+                            mesh: eye
+                          - name: rightEye
+                            offset: { x: -0.375 }
+                            mesh: eye
+                      - name: earsJoint
+                        offset: { y: 0.875, z: -0.625 }
+                        children:
+                          - name: leftEar
+                            offset: { x: 0.625 }
+                            mesh: ear
+                          - name: rightEar
+                            offset: { x: -0.625 }
+                            mesh: ear
+      - name: backLeftLegJoint
+        offset: { x: 1.5, z: -1.50 }
+        children:
+          - name: frontRightLeg
+            mesh: leg
+            offset: { y: -1.75 }
+      - name: backRightLegJoint
+        offset: { x: -1.5, z: -1.50 }
+        children:
+          - name: frontRightLeg
+            mesh: leg
+            offset: { y: -1.75 }
+      - name: frontLeftLegJoint
+        offset: { x: 1.5, z: 1.50 }
+        children:
+          - name: frontRightLeg
+            mesh: leg
+            offset: { y: -1.75 }
+      - name: frontRightLegJoint
+        offset: { x: -1.5, z: 1.50 }
+        children:
+          - name: frontRightLeg
+            mesh: leg
+            offset: { y: -1.75 }
+
+materials:
+  - name: darkBrown
+    baseColor: [ 90, 63, 36, 255 ]
+    metallic: 0
+    roughness: 1
+  - name: brown
+    baseColor: [ 114, 83, 46, 255 ]
+    metallic: 0
+    roughness: 1
+  - name: tan
+    baseColor: [ 139, 115, 78, 255 ]
+    metallic: 0
+    roughness: 1
+  - name: black
+    baseColor: [ 15, 13, 7, 255 ]
+    metallic: 0
+    roughness: 1
+
+animations:
+  - name: walk
+    channels:
+      - nodes: [backRightLegJoint, frontLeftLegJoint]
+        target: Rotation
+        keyframes:
+          - [ 0, { z: 0 } ]
+          - [ 0.5, { z: -11.25 } ]
+          - [ 1, { z: 0 } ]
+          - [ 1.5, { z: 11.25 } ]
+          - [ 2, { z: 0 } ]
+      - nodes: [backLeftLegJoint, frontRightLegJoint]
+        target: Rotation
+        keyframes:
+          - [ 0, { z: 0 } ]
+          - [ 0.5, { z: 11.25 } ]
+          - [ 1, { z: 0 } ]
+          - [ 1.5, { z: -11.25 } ]
+          - [ 2, { z: 0 } ]
+      - nodes: [ chest ]
+        target: Translation
+        keyframes:
+          - [ 0.0, {} ]
+          - [ 0.5, { y: 0.0625 } ]
+          - [ 1.0, {} ]
+          - [ 1.5, { y: -0.0625 } ]
+          - [ 2.0, {} ]
+      - nodes: [ neck ]
+        target: Translation
+        keyframes:
+          - [ 0.0, {} ]
+          - [ 0.5, { y: 0.03125 } ]
+          - [ 1.0, {} ]
+          - [ 1.5, { y: -0.03125 } ]
+          - [ 2.0, {} ]
+  - name: wait
+    channels:
+      - nodes: [ neck ]
+        target: Rotation
+        keyframes:
+          - [ 0, { z: 0 } ]
+          - [ 2, { z: 5.625 } ]
+          - [ 4, { z: 0 } ]
+      - nodes: [ head ]
+        target: Rotation
+        keyframes:
+          - [ 0, { z: 0 } ]
+          - [ 2, { z: 5.625 } ]
+          - [ 4, { z: 0 } ]
+      - nodes: [ earsJoint ]
+        target: Rotation
+        keyframes:
+          - [ 0, { z: 0 }]
+          - [ 2, { z: 11.25 }]
+          - [ 4, { z: 0 }]
+      - nodes: [ chest ]
+        target: Translation
+        keyframes:
+          - [ 0, {} ]
+          - [ 1, { y: -0.125 } ]
+          - [ 2, {} ]
+          - [ 3, { y: 0.125 } ]
+          - [ 4, {} ]
+      - nodes: [ neck ]
+        target: Translation
+        keyframes:
+          - [ 0, {} ]
+          - [ 1, { y: -0.0625 } ]
+          - [ 2, {} ]
+          - [ 3, { y: 0.0625 } ]
+          - [ 4, {} ]

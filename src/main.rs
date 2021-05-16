@@ -11,17 +11,17 @@ fn main() {
     let file_path_path = file.path();
     let file_path = file_path_path.to_str().unwrap();
 
-    println!("Processing {}...", file_path);
-
     let file_name_os_str = file.file_name();
     let file_name = file_name_os_str.to_str().unwrap().split(".").nth(0).unwrap();
     let output_path = format!("output/{}", file_name);
 
-    std::fs::create_dir_all(&output_path).unwrap();
+    std::fs::create_dir_all("output").unwrap();
 
     if !(file_path.ends_with(".yml") || file_path.ends_with(".yaml")) {
       continue;
     }
+
+    println!("Processing {}...", file_path);
 
     let src = std::fs::read_to_string(file.path()).unwrap();
     let model: Model = serde_yaml::from_str(&src).unwrap();
@@ -250,106 +250,109 @@ fn main() {
       gltf_animation.name = animation.name.clone();
 
       for channel in &animation.channels {
-        let node = *node_ids.get(&channel.node).unwrap();
-        let mut max_time = 0f32;
+        for node_name in &channel.nodes {
+          let node = *node_ids.get(node_name).unwrap();
 
-        let byte_offset = animation_data.len() as u32 * 4;
-        for keyframe in &channel.keyframes {
-          animation_data.push(keyframe.0);
-          max_time = max_time.max(keyframe.0);
+          let mut max_time = 0f32;
+
+          let byte_offset = animation_data.len() as u32 * 4;
+          for keyframe in &channel.keyframes {
+            animation_data.push(keyframe.0);
+            max_time = max_time.max(keyframe.0);
+          }
+          let output_byte_offset = animation_data.len() as u32 * 4 - byte_offset;
+
+          let mut max_value = channel.keyframes[0].1;
+          let mut min_value = channel.keyframes[0].1;
+
+          let mut min_quat = glam::Vec4::new(1.0, 1.0, 1.0, 1.0);
+          let mut max_quat = glam::Vec4::new(-1.0, -1.0, -1.0, -1.0);
+
+          for keyframe in &channel.keyframes {
+            if channel.target == Target::Rotation {
+              let quat = glam::Quat::from_euler(
+                glam::EulerRot::ZYX,
+                keyframe.1.x.to_radians(),
+                keyframe.1.y.to_radians(),
+                keyframe.1.z.to_radians(),
+              ).normalize();
+
+              animation_data.push(quat.x);
+              animation_data.push(quat.y);
+              animation_data.push(quat.z);
+              animation_data.push(quat.w);
+
+              min_quat.x = min_quat.x.min(quat.x);
+              min_quat.y = min_quat.y.min(quat.y);
+              min_quat.z = min_quat.z.min(quat.z);
+              min_quat.w = min_quat.w.min(quat.w);
+
+              max_quat.x = max_quat.x.max(quat.x);
+              max_quat.y = max_quat.y.max(quat.y);
+              max_quat.z = max_quat.z.max(quat.z);
+              max_quat.w = max_quat.w.max(quat.w);
+            } else {
+              animation_data.push(keyframe.1.x);
+              animation_data.push(keyframe.1.y);
+              animation_data.push(keyframe.1.z);
+
+              min_value = min_value.min(keyframe.1);
+              max_value = max_value.max(keyframe.1);
+            }
+          }
+
+          let buffer_view = buffer_views.len() as u32;
+          buffer_views.push(gltf::BufferView {
+            buffer: 1,
+            byte_offset,
+            byte_length: animation_data.len() as u32 * 4 - byte_offset,
+            target: None,
+          });
+
+          let input_sampler = gltf::Accessor {
+            buffer_view,
+            byte_offset: 0,
+            component_type: 5126,
+            count: channel.keyframes.len() as u32,
+            accessor_type: "SCALAR".to_string(),
+            max: vec![max_time],
+            min: vec![0.0],
+          };
+
+          let is_quat = channel.target == Target::Rotation;
+
+          let output_sampler = gltf::Accessor {
+            buffer_view,
+            byte_offset: output_byte_offset,
+            component_type: 5126,
+            count: channel.keyframes.len() as u32,
+            accessor_type: if is_quat { "VEC4".to_string() } else { "VEC3".to_string() },
+            max: if is_quat { max_quat.to_array().into() } else { max_value.into() },
+            min: if is_quat { min_quat.to_array().into() } else { min_value.into() },
+          };
+
+          let input_sampler_id = accessors.len() as u32;
+          accessors.push(input_sampler);
+
+          let output_sampler_id = accessors.len() as u32;
+          accessors.push(output_sampler);
+
+          let path = match channel.target {
+            Target::Translation => gltf::Path::Translation,
+            Target::Rotation => gltf::Path::Rotation,
+            Target::Scale => gltf::Path::Scale,
+          };
+
+          gltf_animation.channels.push(gltf::Channel {
+            sampler: gltf_animation.samplers.len() as u32,
+            target: gltf::Target { node, path },
+          });
+          gltf_animation.samplers.push(gltf::Sampler {
+            input: input_sampler_id,
+            output: output_sampler_id,
+            interpolation: gltf::Interpolation::Linear,
+          });
         }
-        let output_byte_offset = animation_data.len() as u32 * 4 - byte_offset;
-
-        let mut max_value = channel.keyframes[0].1;
-        let mut min_value = channel.keyframes[0].1;
-
-        let mut min_quat = glam::Vec4::new(1.0, 1.0, 1.0, 1.0);
-        let mut max_quat = glam::Vec4::new(-1.0, -1.0, -1.0, -1.0);
-
-        for keyframe in &channel.keyframes {
-          if channel.target == Target::Rotation {
-            let quat = glam::Quat::from_euler(
-              glam::EulerRot::ZYX,
-              keyframe.1.x.to_radians(),
-              keyframe.1.y.to_radians(),
-              keyframe.1.z.to_radians(),
-            ).normalize();
-
-          animation_data.push(quat.x);
-          animation_data.push(quat.y);
-          animation_data.push(quat.z);
-          animation_data.push(quat.w);
-
-          min_quat.x = min_quat.x.min(quat.x);
-          min_quat.y = min_quat.y.min(quat.y);
-          min_quat.z = min_quat.z.min(quat.z);
-          min_quat.w = min_quat.w.min(quat.w);
-
-          max_quat.x = max_quat.x.max(quat.x);
-          max_quat.y = max_quat.y.max(quat.y);
-          max_quat.z = max_quat.z.max(quat.z);
-          max_quat.w = max_quat.w.max(quat.w);
-        } else {
-          animation_data.push(keyframe.1.x);
-          animation_data.push(keyframe.1.y);
-          animation_data.push(keyframe.1.z);
-
-          min_value = min_value.min(keyframe.1);
-          max_value = max_value.max(keyframe.1);
-        }
-      }
-
-      let buffer_view = buffer_views.len() as u32;
-      buffer_views.push(gltf::BufferView {
-        buffer: 1,
-        byte_offset,
-        byte_length: animation_data.len() as u32 * 4 - byte_offset,
-        target: None,
-      });
-
-      let input_sampler = gltf::Accessor {
-        buffer_view,
-        byte_offset: 0,
-        component_type: 5126,
-        count: channel.keyframes.len() as u32,
-        accessor_type: "SCALAR".to_string(),
-        max: vec![max_time],
-        min: vec![0.0],
-      };
-
-      let is_quat = channel.target == Target::Rotation;
-
-      let output_sampler = gltf::Accessor {
-        buffer_view,
-        byte_offset: output_byte_offset,
-        component_type: 5126,
-        count: channel.keyframes.len() as u32,
-        accessor_type: if is_quat { "VEC4".to_string() } else { "VEC3".to_string() },
-        max: if is_quat { max_quat.to_array().into() } else { max_value.into() },
-        min: if is_quat { min_quat.to_array().into() } else { min_value.into() },
-      };
-
-      let input_sampler_id = accessors.len() as u32;
-      accessors.push(input_sampler);
-
-        let output_sampler_id = accessors.len() as u32;
-        accessors.push(output_sampler);
-
-        let path = match channel.target {
-          Target::Translation => gltf::Path::Translation,
-          Target::Rotation => gltf::Path::Rotation,
-          Target::Scale => gltf::Path::Scale,
-        };
-
-        gltf_animation.channels.push(gltf::Channel {
-          sampler: gltf_animation.samplers.len() as u32,
-          target: gltf::Target { node, path },
-        });
-        gltf_animation.samplers.push(gltf::Sampler {
-          input: input_sampler_id,
-          output: output_sampler_id,
-          interpolation: gltf::Interpolation::Linear,
-        });
       }
 
       animations.push(gltf_animation);

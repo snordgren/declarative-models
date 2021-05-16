@@ -19,7 +19,7 @@ materials:
 animations:
   - name: rotate
     channels:
-      - node: head
+      - nodes: [ head ]
         target: Rotation
         keyframes:
           - [0, { y: 0 }]

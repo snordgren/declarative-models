@@ -66,7 +66,7 @@ pub struct Animation {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Channel {
-  pub node: String,
+  pub nodes: Vec<String>,
   pub target: Target,
   pub keyframes: Vec<(f32, Vector3)>,
 }
