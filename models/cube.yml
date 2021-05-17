@@ -3,8 +3,11 @@ meshes:
     primitives:
       - material: head
         geometry:
-          - Box:
+          - Cube:
               size: { x: 1, y: 1, z: 1 }
+              rotation: { x: 45 }
+              offsets:
+                v011: { y: 0.25 }
 
 nodes:
   - name: head
@@ -13,7 +16,6 @@ nodes:
 materials:
   - name: head
     baseColor: [ 255, 0, 0, 255 ]
-    metallic: 0
     roughness: 1
 
 animations:

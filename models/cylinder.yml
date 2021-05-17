@@ -1,0 +1,25 @@
+meshes:
+  - name: cylinder
+    primitives:
+      - material: red
+        geometry:
+          - Cylinder:
+              size: { x: 1, y: 1, z: 1 }
+              points: 32
+              rotation: { z: 90 }
+  - name: floor
+    primitives:
+      - material: red
+        geometry:
+          - Cube: { size: { x: 1, y: 1, z: 1 }}
+          - Plane: { size: { x: 4, y: 4 } }
+
+nodes:
+  - name: cylinder
+    mesh: cylinder
+    offset: { y: 1 }
+  - { name: floor, mesh: floor }
+
+materials:
+  - name: red
+    baseColor: [255, 0, 0, 255]

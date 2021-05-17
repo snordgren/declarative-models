@@ -3,17 +3,15 @@ meshes:
     primitives:
       - material: red
         geometry:
-          - Triangle: { points: [{x: -1}, {x: 1}, {y: 2}] }
+          - Triangle:
+              points: [ { x: -1 }, { x: 1 }, { y: 2 } ]
 
 nodes:
   - name: triangle
     mesh: triangle
 
 materials:
-  - name: red
-    baseColor: [255, 0, 0, 255]
-    metallic: 0
-    roughness: 0
+  - { name: red, baseColor: [255, 0, 0, 255] }
 
 animations:
   - name: translate

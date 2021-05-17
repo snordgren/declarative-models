@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
+pub use geometry::*;
 pub use model::*;
 
 pub mod gltf;
+mod geometry;
 mod model;
 
 fn main() {
@@ -75,59 +77,7 @@ fn main() {
         let mut max = Vector3::default();
 
         for geometry in &primitive.geometry {
-          match geometry {
-            Geometry::Box(b) => {
-              let min = b.position - b.size / Vector3::new(2.0, 2.0, 2.0);
-              let max = min + b.size;
-
-              vertices.push(min);
-              vertices.push(Vector3::new(max.x, min.y, min.z));
-              vertices.push(Vector3::new(min.x, max.y, min.z));
-              vertices.push(Vector3::new(min.x, max.y, min.z));
-              vertices.push(Vector3::new(max.x, min.y, min.z));
-              vertices.push(Vector3::new(max.x, max.y, min.z));
-
-              vertices.push(Vector3::new(min.x, min.y, max.z));
-              vertices.push(Vector3::new(max.x, min.y, max.z));
-              vertices.push(Vector3::new(min.x, max.y, max.z));
-              vertices.push(Vector3::new(min.x, max.y, max.z));
-              vertices.push(Vector3::new(max.x, min.y, max.z));
-              vertices.push(Vector3::new(max.x, max.y, max.z));
-
-              vertices.push(Vector3::new(min.x, min.y, min.z));
-              vertices.push(Vector3::new(min.x, min.y, max.z));
-              vertices.push(Vector3::new(max.x, min.y, min.z));
-              vertices.push(Vector3::new(max.x, min.y, min.z));
-              vertices.push(Vector3::new(min.x, min.y, max.z));
-              vertices.push(Vector3::new(max.x, min.y, max.z));
-
-              vertices.push(Vector3::new(min.x, max.y, min.z));
-              vertices.push(Vector3::new(min.x, max.y, max.z));
-              vertices.push(Vector3::new(max.x, max.y, min.z));
-              vertices.push(Vector3::new(max.x, max.y, min.z));
-              vertices.push(Vector3::new(min.x, max.y, max.z));
-              vertices.push(Vector3::new(max.x, max.y, max.z));
-
-              vertices.push(Vector3::new(min.x, min.y, min.z));
-              vertices.push(Vector3::new(min.x, max.y, min.z));
-              vertices.push(Vector3::new(min.x, min.y, max.z));
-              vertices.push(Vector3::new(min.x, min.y, max.z));
-              vertices.push(Vector3::new(min.x, max.y, min.z));
-              vertices.push(Vector3::new(min.x, max.y, max.z));
-
-              vertices.push(Vector3::new(max.x, min.y, min.z));
-              vertices.push(Vector3::new(max.x, max.y, min.z));
-              vertices.push(Vector3::new(max.x, min.y, max.z));
-              vertices.push(Vector3::new(max.x, min.y, max.z));
-              vertices.push(Vector3::new(max.x, max.y, min.z));
-              vertices.push(Vector3::new(max.x, max.y, max.z));
-            }
-            Geometry::Triangle(triangle) => {
-              vertices.push(triangle.points[0]);
-              vertices.push(triangle.points[1]);
-              vertices.push(triangle.points[2]);
-            }
-          }
+          geometry.generate_vertices(&mut vertices);
         }
 
         for i in start_vertices_len..vertices.len() {

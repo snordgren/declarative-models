@@ -3,17 +3,17 @@ meshes:
     primitives:
       - material: default
         geometry:
-          - Box: { size: { x: 0.25, y: 8, z: 4 } }
+          - Cube: { size: { x: 0.25, y: 8, z: 4 } }
   - name: board
     primitives:
       - material: brown
         geometry:
-          - Box: { size: { x: 0.25, y: 2, z: 3.5 } }
+          - Cube: { size: { x: 0.25, y: 2, z: 3.5 } }
   - name: shaft
     primitives:
-      - material: brown
+      - material: shaft
         geometry:
-          - Box: { size: { x: 0.25, y: 0.25, z: 5 } }
+          - Cylinder: { size: { x: 0.25, y: 0.25, z: 5 }, points: 5 }
 
 nodes:
   - name: rootJoint
@@ -64,12 +64,14 @@ nodes:
 materials:
   - name: default
     baseColor: [ 114, 83, 46, 255 ]
-    metallic: 0
     roughness: 1
   - name: brown
     baseColor: [ 90, 63, 36, 255 ]
-    metallic: 0
     roughness: 1
+  - name: shaft
+    baseColor: [ 27, 20, 24, 255 ]
+    metallic: 0.25
+    roughness: 0.75
 
 animations:
   - name: spin

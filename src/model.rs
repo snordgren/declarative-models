@@ -1,5 +1,8 @@
+use std::ops::{Add, Div, Mul, Sub};
+
 use serde::{Deserialize, Serialize};
-use std::ops::{Add, Sub, Mul, Div};
+
+use crate::Geometry;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Model {
@@ -22,25 +25,6 @@ pub struct Primitive {
   #[serde(default)]
   pub material: Option<String>,
   pub geometry: Vec<Geometry>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum Geometry {
-  Box(Box),
-  Triangle(Triangle),
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Box {
-  #[serde(default)]
-  pub position: Vector3,
-  #[serde(default)]
-  pub size: Vector3,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Triangle {
-  pub points: [Vector3; 3],
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -87,6 +71,10 @@ unsafe impl bytemuck::Zeroable for Vector3 {}
 unsafe impl bytemuck::Pod for Vector3 {}
 
 impl Vector3 {
+  pub const ZERO: Vector3 = Vector3 { x: 0.0, y: 0.0, z: 0.0 };
+  pub const ONE: Vector3 = Vector3 { x: 1.0, y: 1.0, z: 1.0 };
+  pub const MINUS_ONE: Vector3 = Vector3 { x: -1.0, y: -1.0, z: -1.0 };
+
   pub fn max(&self, other: Vector3) -> Self {
     Self {
       x: self.x.max(other.x),
@@ -103,8 +91,22 @@ impl Vector3 {
     }
   }
 
+  pub fn minus_one() -> Self {
+    Vector3::MINUS_ONE
+  }
+
   pub fn new(x: f32, y: f32, z: f32) -> Self {
     Self { x, y, z }
+  }
+
+  pub fn one() -> Self {
+    Vector3::ONE
+  }
+
+  pub fn set(&mut self, x: f32, y: f32, z: f32) {
+    self.x = x;
+    self.y = y;
+    self.z = z;
   }
 }
 
@@ -173,7 +175,9 @@ pub struct Material {
   pub name: String,
   #[serde(rename = "baseColor")]
   pub base_color: [f32; 4],
+  #[serde(default)]
   pub metallic: f32,
+  #[serde(default)]
   pub roughness: f32,
 }
 

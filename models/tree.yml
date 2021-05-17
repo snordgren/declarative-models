@@ -1,0 +1,61 @@
+meshes:
+  - name: trunk
+    primitives:
+      - material: trunk
+        geometry:
+          - Cylinder:
+              points: 8
+              size: { x: 3, y: 3, z: 16 }
+              rotation: { z: 90 }
+              displacement:
+                seed: 2
+                min: { x: -0.25, y: -0.25, z: 0 }
+                max: { x: 0.25, y: 0.25, z: 0 }
+  - name: leaf
+    primitives:
+      - material: leaf
+        geometry:
+          - Cube:
+              size: { x: 8, y: 8, z: 8 }
+              offsets:
+                v010: { x: 2, z: 2 }
+                v011: { x: 2, z: -2 }
+                v110: { x: -2, z: 2 }
+                v111: { x: -2, z: -2 }
+
+nodes:
+  - name: trunkJoint
+    offset: { y: -16 }
+    children:
+      - name: trunk
+        mesh: trunk
+        offset: { y: 16 }
+        children:
+          - name: top
+            mesh: leaf
+            scale: { x: 0.75, y: 0.75, z: 0.75 }
+            rotation: { y: 5.625 }
+            offset: { y: 8 }
+          - name: bottom
+            mesh: leaf
+            offset: { y: 2 }
+
+materials:
+  - name: trunk
+    baseColor: [ 114, 83, 46, 255 ]
+    roughness: 1
+  - name: leaf
+    baseColor: [ 33, 255, 66, 255 ]
+    roughness: 1
+
+animations:
+  - name: wind
+    channels:
+      - nodes: [ trunkJoint ]
+        target: Rotation
+        keyframes:
+          - [ 0, { z: 0 } ]
+          - [ 2, { z: -2.8125 } ]
+          - [ 4, { z: 0 } ]
+          - [ 6, { z: 2.8125 } ]
+          - [ 8, { z: 0 } ]
