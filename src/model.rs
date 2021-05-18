@@ -122,6 +122,14 @@ impl Add for Vector3 {
   }
 }
 
+impl std::ops::AddAssign for Vector3 {
+  fn add_assign(&mut self, rhs: Self) {
+    self.x += rhs.x;
+    self.y += rhs.y;
+    self.z += rhs.z;
+  }
+}
+
 impl Div for Vector3 {
   type Output = Self;
 

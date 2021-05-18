@@ -1,0 +1,14 @@
+meshes:
+  - name: icosphere
+    primitives:
+      - material: red
+        geometry:
+          - IcoSphere:
+              divides: 2
+
+nodes:
+  - name: icosphere
+    mesh: icosphere
+
+materials:
+  - { name: red, baseColor: [255, 0, 0, 255] }

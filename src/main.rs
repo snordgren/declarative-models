@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
 pub use geometry::*;
+pub use geometry_buffer::*;
 pub use model::*;
 
 pub mod gltf;
 mod geometry;
+mod geometry_buffer;
 mod model;
 
 fn main() {
@@ -77,7 +79,10 @@ fn main() {
         let mut max = Vector3::default();
 
         for geometry in &primitive.geometry {
-          geometry.generate_vertices(&mut vertices);
+          let buf = geometry.generate_vertices();
+          for vertex in buf.make_redundant() {
+            vertices.push(vertex);
+          }
         }
 
         for i in start_vertices_len..vertices.len() {

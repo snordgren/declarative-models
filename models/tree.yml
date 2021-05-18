@@ -3,14 +3,12 @@ meshes:
     primitives:
       - material: trunk
         geometry:
-          - Cylinder:
-              points: 8
-              size: { x: 3, y: 3, z: 16 }
-              rotation: { z: 90 }
-              displacement:
-                seed: 2
-                min: { x: -0.25, y: -0.25, z: 0 }
-                max: { x: 0.25, y: 0.25, z: 0 }
+          - Deform:
+              seed: 8
+              min: { x: -0.25, y: -0.25, z: 0 }
+              max: { x: 0.25, y: 0.25, z: 0 }
+              geometry:
+                Cylinder: { points: 8, size: { x: 3, y: 16, z: 3 } }
   - name: leaf
     primitives:
       - material: leaf

@@ -6,7 +6,6 @@ meshes:
           - Cylinder:
               size: { x: 1, y: 1, z: 1 }
               points: 32
-              rotation: { z: 90 }
   - name: floor
     primitives:
       - material: red

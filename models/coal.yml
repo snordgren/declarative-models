@@ -1,0 +1,19 @@
+meshes:
+  - name: icosphere
+    primitives:
+      - material: coal
+        geometry:
+          - Deform:
+              seed: 1
+              min: { x: -0.06, y: -0.06, z: -0.06 }
+              max: { x: 0.06, y: 0.06, z: 0.06 }
+              geometry:
+                IcoSphere:
+                  divides: 1
+
+nodes:
+  - name: icosphere
+    mesh: icosphere
+
+materials:
+  - { name: coal, baseColor: [50, 50, 50, 255], roughness: 1 }

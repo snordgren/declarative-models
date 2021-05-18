@@ -1,84 +1,55 @@
 use rand::prelude::*;
 use rand_pcg::Pcg64;
-
 use serde::{Deserialize, Serialize};
 
-use crate::Vector3;
+pub use cone::*;
+pub use cube::*;
+pub use deform::*;
+pub use icosphere::*;
+pub use uv_sphere::*;
+
+use crate::{GeometryBuffer, Vector3};
+
+mod cone;
+mod cube;
+mod deform;
+mod icosphere;
+mod uv_sphere;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum Geometry {
+  Cone(Cone),
   Cube(Cube),
   Cylinder(Cylinder),
+  Deform(Box<Deform>),
+  IcoSphere(Icosphere),
   Plane(Plane),
   Triangle(Triangle),
+  UvSphere(UvSphere),
 }
 
 impl Geometry {
-  pub fn generate_vertices(&self, vertices: &mut Vec<Vector3>) {
-    let start = vertices.len();
+  pub fn generate_vertices(&self) -> GeometryBuffer {
     let rotation;
+    let scale;
     let translation;
 
+    let mut buf = GeometryBuffer::new();
+
     match self {
+      Geometry::Cone(c) => {
+        buf = c.generate_geometry();
+
+        rotation = c.rotation;
+        scale = c.size;
+        translation = c.position;
+      }
       Geometry::Cube(b) => {
-        let min = b.position - b.size / Vector3::new(2.0, 2.0, 2.0);
-        let max = min + b.size;
-
-        let offset = b.offsets.unwrap_or_default();
-
-        let p000 = min + offset.v000;
-        let p001 = Vector3::new(min.x, min.y, max.z) + offset.v001;
-        let p010 = Vector3::new(min.x, max.y, min.z) + offset.v010;
-        let p011 = Vector3::new(min.x, max.y, max.z) + offset.v011;
-        let p100 = Vector3::new(max.x, min.y, min.z) + offset.v100;
-        let p101 = Vector3::new(max.x, min.y, max.z) + offset.v101;
-        let p110 = Vector3::new(max.x, max.y, min.z) + offset.v110;
-        let p111 = Vector3::new(max.x, max.y, max.z) + offset.v111;
-
-        vertices.push(p000);
-        vertices.push(p100);
-        vertices.push(p010);
-        vertices.push(p010);
-        vertices.push(p100);
-        vertices.push(p110);
-
-        vertices.push(p001);
-        vertices.push(p101);
-        vertices.push(p011);
-        vertices.push(p011);
-        vertices.push(p101);
-        vertices.push(p111);
-
-        vertices.push(p000);
-        vertices.push(p001);
-        vertices.push(p100);
-        vertices.push(p100);
-        vertices.push(p001);
-        vertices.push(p101);
-
-        vertices.push(p010);
-        vertices.push(p011);
-        vertices.push(p110);
-        vertices.push(p110);
-        vertices.push(p011);
-        vertices.push(p111);
-
-        vertices.push(p000);
-        vertices.push(p010);
-        vertices.push(p001);
-        vertices.push(p001);
-        vertices.push(p010);
-        vertices.push(p011);
-
-        vertices.push(p100);
-        vertices.push(p110);
-        vertices.push(p101);
-        vertices.push(p101);
-        vertices.push(p110);
-        vertices.push(p111);
+        buf = b.generate_geometry();
 
         rotation = b.rotation;
-        translation = None;
+        scale = Some(b.size);
+        translation = Some(b.position);
       }
       Geometry::Cylinder(c) => {
         fn calculate_angle(points: u32, i: u32) -> f32 {
@@ -89,151 +60,118 @@ impl Geometry {
           (i0 as f32) * (2.0 * std::f32::consts::PI) / (points as f32)
         }
 
-        let z0 = -0.5 * c.size.z;
-        let z1 = 0.5 * c.size.z;
+        let z0 = -0.5;
+        let z1 = 0.5;
 
-        let center_z0 = Vector3::new(c.size.x / 4.0, c.size.y / 4.0, z0);
-        let center_z1 = Vector3::new(c.size.x / 4.0, c.size.y / 4.0, z1);
+        let center_x = 0.0;
+        let center_y = 0.0;
+        let center_z0 = buf.vertex(Vector3::new(center_x, center_y, z0));
+        let center_z1 = buf.vertex(Vector3::new(center_x, center_y, z1));
 
         let mut vertex_points: Vec<[f32; 2]> = (0..c.points)
           .map(|i| {
             let radians = calculate_angle(c.points, i);
-            let x = radians.cos() * 0.5 * c.size.x;
-            let y = radians.sin() * 0.5 * c.size.y;
+            let x = radians.cos() * 0.5;
+            let y = radians.sin() * 0.5;
             [x, y]
           })
           .collect();
 
-        if let Some(displacement) = &c.displacement {
-          let mut rng = Pcg64::seed_from_u64(displacement.seed);
-          for i in 0..vertex_points.len() {
-            let min_x = displacement.min.x;
-            let x_range = displacement.max.x - min_x;
-            let x_offset = min_x + rng.gen::<f32>() * x_range;
+        let mut indices = Vec::new();
+        for i in 0..c.points {
+          let [x0, y0] = vertex_points[i as usize];
 
-            let min_y = displacement.min.y;
-            let y_range = displacement.max.y - min_y;
-            let y_offset = min_y + rng.gen::<f32>() * y_range;
-
-            vertex_points[i][0] += x_offset;
-            vertex_points[i][1] += y_offset;
-          }
+          let v000 = buf.vertex(Vector3::new(x0, y0, z0));
+          let v001 = buf.vertex(Vector3::new(x0, y0, z1));
+          indices.push(v000);
+          indices.push(v001);
         }
 
         for i in 0..c.points {
           let [x0, y0] = vertex_points[i as usize];
           let [x1, y1] = vertex_points[(i as usize + 1) % vertex_points.len()];
 
-          let v000 = Vector3::new(x0, y0, z0);
-          let v001 = Vector3::new(x0, y0, z1);
-          let v110 = Vector3::new(x1, y1, z0);
-          let v111 = Vector3::new(x1, y1, z1);
+          let v000 = indices[2 * i as usize];
+          let v001 = indices[2 * i as usize + 1];
+          let v110 = indices[2 * ((i as usize + 1) % vertex_points.len())];
+          let v111 = indices[2 * ((i as usize + 1) % vertex_points.len()) + 1];
 
-          vertices.push(v000);
-          vertices.push(v110);
-          vertices.push(center_z0);
-
-          vertices.push(v001);
-          vertices.push(v111);
-          vertices.push(center_z1);
-
-          vertices.push(v000);
-          vertices.push(v110);
-          vertices.push(v111);
-
-          vertices.push(v000);
-          vertices.push(v001);
-          vertices.push(v111);
+          buf.triangle(v000, v110, center_z0);
+          buf.triangle(v001, v111, center_z1);
+          buf.triangle(v000, v110, v111);
+          buf.triangle(v000, v001, v111);
         }
 
+        buf.rotate(Vector3::new(0.0, 0.0, 90.0));
+
         rotation = c.rotation;
+        scale = Some(c.size);
         translation = Some(c.position);
+      }
+      Geometry::Deform(i) => {
+        buf = i.generate_geometry();
+
+        rotation = None;
+        scale = None;
+        translation = None;
+      }
+      Geometry::IcoSphere(i) => {
+        buf = i.generate_geometry();
+
+        rotation = i.rotation;
+        scale = i.size;
+        translation = i.position;
       }
       Geometry::Plane(p) => {
         let min = p.position - p.size / Vector3::new(2.0, 2.0, 2.0);
         let max = min + p.size;
 
-        let v00 = Vector3::new(min.x, 0.0, min.y);
-        let v01 = Vector3::new(min.x, 0.0, max.y);
-        let v10 = Vector3::new(max.x, 0.0, min.y);
-        let v11 = Vector3::new(max.x, 0.0, max.y);
+        let v00 = buf.vertex(Vector3::new(min.x, 0.0, min.y));
+        let v01 = buf.vertex(Vector3::new(min.x, 0.0, max.y));
+        let v10 = buf.vertex(Vector3::new(max.x, 0.0, min.y));
+        let v11 = buf.vertex(Vector3::new(max.x, 0.0, max.y));
 
-        vertices.push(v00);
-        vertices.push(v10);
-        vertices.push(v01);
-        vertices.push(v01);
-        vertices.push(v10);
-        vertices.push(v11);
+        buf.triangle(v00, v10, v01);
+        buf.triangle(v01, v10, v11);
 
         rotation = p.rotation;
+        scale = None;
         translation = None;
       }
       Geometry::Triangle(triangle) => {
-        vertices.push(triangle.points[0]);
-        vertices.push(triangle.points[1]);
-        vertices.push(triangle.points[2]);
+        let v0 = buf.vertex(triangle.points[0]);
+        let v1 = buf.vertex(triangle.points[1]);
+        let v2 = buf.vertex(triangle.points[2]);
+
+        buf.triangle(v0, v1, v2);
 
         rotation = triangle.rotation;
+        scale = None;
         translation = None;
       }
+      Geometry::UvSphere(i) => {
+        buf = i.generate_geometry();
+
+        rotation = i.rotation;
+        scale = i.size;
+        translation = i.position;
+      }
+    }
+
+    if let Some(matrix) = scale {
+      buf.scale(matrix);
     }
 
     if let Some(rot) = rotation {
-      let rotation_matrix = glam::Mat4::from_euler(glam::EulerRot::ZYX,
-        rot.x.to_radians(), rot.y.to_radians(), rot.z.to_radians());
-
-      for i in start..(vertices.len()) {
-        let v0 = vertices[i];
-        let v1 = glam::vec3(v0.x, v0.y, v0.z);
-        let v2 = rotation_matrix.transform_point3(v1);
-        vertices[i].set(v2.x, v2.y, v2.z);
-      }
+      buf.rotate(rot);
     }
 
     if let Some(trans) = translation {
-      let matrix = glam::Mat4::from_translation(
-        glam::vec3(trans.x, trans.y, trans.z));
-
-      for i in start..(vertices.len()) {
-        let v0 = vertices[i];
-        let v1 = glam::vec3(v0.x, v0.y, v0.z);
-        let v2 = matrix.transform_point3(v1);
-        vertices[i].set(v2.x, v2.y, v2.z);
-      }
+      buf.translate(trans);
     }
+
+    buf
   }
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Cube {
-  #[serde(default)]
-  pub position: Vector3,
-  #[serde(default)]
-  pub size: Vector3,
-  #[serde(default)]
-  pub rotation: Option<Vector3>,
-  #[serde(default)]
-  pub offsets: Option<CubeVertexOffset>,
-}
-
-#[derive(Copy, Clone, Debug, Default, Deserialize, Serialize)]
-pub struct CubeVertexOffset {
-  #[serde(default)]
-  pub v000: Vector3,
-  #[serde(default)]
-  pub v001: Vector3,
-  #[serde(default)]
-  pub v010: Vector3,
-  #[serde(default)]
-  pub v011: Vector3,
-  #[serde(default)]
-  pub v100: Vector3,
-  #[serde(default)]
-  pub v101: Vector3,
-  #[serde(default)]
-  pub v110: Vector3,
-  #[serde(default)]
-  pub v111: Vector3,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -245,8 +183,6 @@ pub struct Cylinder {
   pub points: u32,
   #[serde(default)]
   pub rotation: Option<Vector3>,
-  #[serde(default)]
-  pub displacement: Option<Displacement>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

@@ -11,6 +11,7 @@ opt-level = 2
 [dependencies]
 base64 = "0.13.0"
 bytemuck = "1.5.1"
+genmesh = "0.6.2"
 glam = "0.15.1"
 rand = "0.8.3"
 rand_pcg = "0.3.0"

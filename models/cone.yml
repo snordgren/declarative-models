@@ -1,0 +1,26 @@
+meshes:
+  - name: cone
+    primitives:
+      - material: red
+        geometry:
+          - Cone:
+              divides: 4
+  - name: plane
+    primitives:
+      - material: red
+        geometry:
+          - Plane:
+              size: { x: 1, y: 1 }
+
+nodes:
+  - name: cone
+    mesh: cone
+  - name: floor
+    mesh: plane
+    offset: { y: -0.5 }
+  - name: ceil
+    mesh: plane
+    offset: { y: 0.5 }
+
+materials:
+  - { name: red, baseColor: [255, 0, 0, 255] }
