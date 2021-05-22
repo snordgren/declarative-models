@@ -1,4 +1,5 @@
 /.idea
+/models
 /output
 /target
 *.iml

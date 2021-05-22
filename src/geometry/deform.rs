@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
-use crate::{GeometryBuffer, Geometry, Vector3};
+
+use crate::{GenerateGeometry, Geometry, GeometryBuffer, Vector3};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Deform {
@@ -12,9 +13,9 @@ pub struct Deform {
   pub geometry: Geometry,
 }
 
-impl Deform {
-  pub fn generate_geometry(&self) -> GeometryBuffer {
-    let mut buf = self.geometry.generate_vertices();
+impl GenerateGeometry for Deform {
+  fn generate_geometry(&self) -> GeometryBuffer {
+    let mut buf = self.geometry.generate_geometry();
     buf.deform(self.min, self.max, Vector3::ONE, self.seed);
     buf
   }

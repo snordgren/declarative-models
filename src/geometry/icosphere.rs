@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{GeometryBuffer, Vector3};
+use crate::{GeometryBuffer, Vector3, GenerateGeometry};
 use genmesh::generators::{IndexedPolygon, SharedVertex};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -16,11 +16,11 @@ pub struct Icosphere {
 }
 
 fn default_divides() -> u32 {
-  1
+  0
 }
 
-impl Icosphere {
-  pub fn generate_geometry(&self) -> GeometryBuffer {
+impl GenerateGeometry for Icosphere {
+  fn generate_geometry(&self) -> GeometryBuffer {
     let mut buf = GeometryBuffer::new();
     let icosphere = genmesh::generators::IcoSphere::subdivide(
       self.divides as usize);

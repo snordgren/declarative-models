@@ -13,7 +13,7 @@ meshes:
     primitives:
       - material: shaft
         geometry:
-          - Cylinder: { size: { x: 0.25, y: 0.25, z: 5 }, points: 5 }
+          - Cylinder: { size: { x: 0.25, y: 5, z: 0.25 }, points: 5, rotation: { z: 90 } }
 
 nodes:
   - name: rootJoint

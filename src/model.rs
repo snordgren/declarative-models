@@ -55,6 +55,13 @@ pub struct Channel {
   pub keyframes: Vec<(f32, Vector3)>,
 }
 
+#[derive(Copy, Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+pub enum Axis {
+  X,
+  Y,
+  Z,
+}
+
 #[derive(Copy, Clone, Debug, Default, Deserialize, Serialize)]
 #[repr(C)]
 pub struct Vector3 {
@@ -74,6 +81,18 @@ impl Vector3 {
   pub const ZERO: Vector3 = Vector3 { x: 0.0, y: 0.0, z: 0.0 };
   pub const ONE: Vector3 = Vector3 { x: 1.0, y: 1.0, z: 1.0 };
   pub const MINUS_ONE: Vector3 = Vector3 { x: -1.0, y: -1.0, z: -1.0 };
+
+  pub fn distance(&self, other: Vector3) -> f32 {
+    glam::vec3(self.x, self.y, self.z).distance(glam::vec3(other.x, other.y, other.z))
+  }
+
+  pub fn get_axis(&self, axis: Axis) -> f32 {
+    match axis {
+      Axis::X => self.x,
+      Axis::Y => self.y,
+      Axis::Z => self.z,
+    }
+  }
 
   pub fn max(&self, other: Vector3) -> Self {
     Self {

@@ -3,7 +3,7 @@ meshes:
     primitives:
       - material: red
         geometry:
-          - IcoSphere:
+          - Icosphere:
               divides: 2
 
 nodes:

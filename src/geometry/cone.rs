@@ -1,7 +1,7 @@
+use genmesh::generators::{IndexedPolygon, SharedVertex};
 use serde::{Deserialize, Serialize};
 
-use crate::{GeometryBuffer, Vector3};
-use genmesh::generators::{IndexedPolygon, SharedVertex};
+use crate::{GenerateGeometry, GeometryBuffer, Vector3};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Cone {
@@ -19,8 +19,8 @@ fn default_divides() -> u32 {
   1
 }
 
-impl Cone {
-  pub fn generate_geometry(&self) -> GeometryBuffer {
+impl GenerateGeometry for Cone {
+  fn generate_geometry(&self) -> GeometryBuffer {
     let mut buf = GeometryBuffer::new();
 
     let cone = genmesh::generators::Cone::new(

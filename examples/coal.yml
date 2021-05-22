@@ -5,11 +5,12 @@ meshes:
         geometry:
           - Deform:
               seed: 1
-              min: { x: -0.06, y: -0.06, z: -0.06 }
-              max: { x: 0.06, y: 0.06, z: 0.06 }
+              min: { x: -0.25, y: -0.25, z: -0.25 }
+              max: { x: 0.25, y: 0.25, z: 0.25 }
               geometry:
-                IcoSphere:
+                Icosphere:
                   divides: 1
+                  size: { x: 4, y: 3, z: 4 }
 
 nodes:
   - name: icosphere

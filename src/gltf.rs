@@ -56,6 +56,7 @@ pub struct Primitive {
   #[serde(default)]
   #[serde(skip_serializing_if = "Option::is_none")]
   pub material: Option<u32>,
+  pub mode: u32,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

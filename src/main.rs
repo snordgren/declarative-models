@@ -10,7 +10,9 @@ mod geometry_buffer;
 mod model;
 
 fn main() {
-  for file in std::fs::read_dir("models").unwrap()
+  let dir = std::env::args().last().unwrap();
+
+  for file in std::fs::read_dir(&dir).unwrap()
     .filter_map(|it| it.ok()) {
     let file_path_path = file.path();
     let file_path = file_path_path.to_str().unwrap();
@@ -79,7 +81,7 @@ fn main() {
         let mut max = Vector3::default();
 
         for geometry in &primitive.geometry {
-          let buf = geometry.generate_vertices();
+          let buf = geometry.generate_geometry();
           for vertex in buf.make_redundant() {
             vertices.push(vertex);
           }
@@ -133,6 +135,7 @@ fn main() {
             position: Some(accessors.len() as u32 - 1),
           },
           material,
+          mode: 4,
         });
       }
 

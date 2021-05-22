@@ -3,10 +3,14 @@ use rand_pcg::Pcg64;
 
 use crate::Vector3;
 
+#[derive(Copy, Clone, Debug, Default)]
+#[repr(C)]
+pub struct Triangle(pub [u16; 3]);
+
 #[derive(Clone, Debug, Default)]
 pub struct GeometryBuffer {
   pub vertices: Vec<Vector3>,
-  pub indices: Vec<u16>,
+  pub triangles: Vec<Triangle>,
 }
 
 impl GeometryBuffer {
@@ -39,17 +43,15 @@ impl GeometryBuffer {
     }
   }
 
-  pub fn index(&mut self, index: u16) {
-    self.indices.push(index);
-  }
-
   /// Transform the geometry buffer into a non-indexed array of vertices.
   pub fn make_redundant(&self) -> Vec<Vector3> {
     let mut output = Vec::new();
-    for i in 0..(self.indices.len() / 3) {
-      let f0 = self.indices[3 * i] as usize;
-      let f1 = self.indices[3 * i + 1] as usize;
-      let f2 = self.indices[3 * i + 2] as usize;
+    for i in 0..self.triangles.len() {
+      let triangle = self.triangles[i];
+
+      let f0 = triangle.0[0] as usize;
+      let f1 = triangle.0[1] as usize;
+      let f2 = triangle.0[2] as usize;
 
       output.push(self.vertices[f0]);
       output.push(self.vertices[f1]);
@@ -58,8 +60,32 @@ impl GeometryBuffer {
     output
   }
 
+  pub fn max_position(&self) -> Vector3 {
+    let mut max = Vector3::new(std::f32::MIN, std::f32::MIN, std::f32::MIN);
+    for vertex in &self.vertices {
+      max.x = max.x.max(vertex.x);
+      max.y = max.y.max(vertex.y);
+      max.z = max.z.max(vertex.z);
+    }
+    max
+  }
+
+  pub fn min_position(&self) -> Vector3 {
+    let mut min = Vector3::new(std::f32::MAX, std::f32::MAX, std::f32::MAX);
+    for vertex in &self.vertices {
+      min.x = min.x.min(vertex.x);
+      min.y = min.y.min(vertex.y);
+      min.z = min.z.min(vertex.z);
+    }
+    min
+  }
+
   pub fn new() -> Self {
     Self::default()
+  }
+
+  pub fn remove_triangle(&mut self, index: usize) {
+    self.triangles.remove(index);
   }
 
   pub fn rotate(&mut self, rot: Vector3) {
@@ -77,6 +103,16 @@ impl GeometryBuffer {
     self.apply_transform(matrix);
   }
 
+  pub fn split_triangle(&mut self, index: usize, p_index: u16) {
+    let triangle = self.triangles[index];
+
+    self.triangles.remove(index);
+
+    self.triangles.push(Triangle([triangle.0[0], triangle.0[1], p_index]));
+    self.triangles.push(Triangle([triangle.0[1], triangle.0[2], p_index]));
+    self.triangles.push(Triangle([triangle.0[2], p_index, triangle.0[0]]));
+  }
+
   pub fn translate(&mut self, trans: Vector3) {
     let matrix = glam::Mat4::from_translation(
       glam::vec3(trans.x, trans.y, trans.z));
@@ -85,14 +121,22 @@ impl GeometryBuffer {
   }
 
   pub fn triangle(&mut self, a: u16, b: u16, c: u16) {
-    self.indices.push(a);
-    self.indices.push(b);
-    self.indices.push(c);
+    if a == b || b == c || c == a {
+      panic!(format!("Cannot add triangle with duplicate indices {}, {}, {}", a, b, c));
+    }
+
+    self.triangles.push(Triangle([a, b, c]));
   }
 
   pub fn vertex(&mut self, pos: Vector3) -> u16 {
-    let index = self.vertices.len() as u16;
+    let index = self.vertices.len();
     self.vertices.push(pos);
-    index
+
+    let max_index = u16::max_value() as usize;
+    if index >= max_index {
+      panic!(format!("Too many vertices n={} (max is {}).", index, max_index));
+    }
+
+    index as u16
   }
 }

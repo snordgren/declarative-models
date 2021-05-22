@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{GeometryBuffer, Vector3};
+use crate::{GenerateGeometry, GeometryBuffer, Vector3};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Cube {
@@ -34,8 +34,8 @@ pub struct CubeVertexOffset {
   pub v111: Vector3,
 }
 
-impl Cube {
-  pub fn generate_geometry(&self) -> GeometryBuffer {
+impl GenerateGeometry for Cube {
+  fn generate_geometry(&self) -> GeometryBuffer {
     let mut buf = GeometryBuffer::new();
 
     let min = Vector3::new(-0.5, -0.5, -0.5);

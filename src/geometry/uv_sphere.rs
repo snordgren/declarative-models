@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{GeometryBuffer, Vector3};
+use crate::{GeometryBuffer, Vector3, GenerateGeometry};
 use genmesh::generators::{IndexedPolygon, SharedVertex};
 use genmesh::Polygon;
 
@@ -26,8 +26,8 @@ fn default_v() -> u32 {
   8
 }
 
-impl UvSphere {
-  pub fn generate_geometry(&self) -> GeometryBuffer {
+impl GenerateGeometry for UvSphere {
+  fn generate_geometry(&self) -> GeometryBuffer {
     let mut buf = GeometryBuffer::new();
 
     let mesh = genmesh::generators::SphereUv::new(
